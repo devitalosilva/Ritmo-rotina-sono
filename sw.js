@@ -1,0 +1,82 @@
+/* =========================================================
+   SERVICE WORKER DO RITMO
+   Deixa o site instalável como app e faz ele abrir mesmo sem internet.
+
+   - A página (index.html) vem sempre da rede primeiro, para pegar a versão
+     mais nova. Sem internet, usa a última cópia guardada.
+   - Os demais arquivos do site (biblioteca, ícones, manifesto) respondem com a
+     cópia guardada e se atualizam em segundo plano.
+   - Pedidos para outros endereços (Supabase, Google Fonts) não passam por aqui:
+     dados da conta nunca ficam guardados no cache.
+
+   Ao mudar a lista ARQUIVOS, troque também VERSAO (ex.: "ritmo-v2"): o cache
+   antigo é apagado quando a versão nova assume.
+   ========================================================= */
+const VERSAO = "ritmo-v1";
+const ARQUIVOS = [
+  "./",
+  "./index.html",
+  "./manifest.webmanifest",
+  "./vendor/supabase-js-2.117.3.js",
+  "./icons/icon-192.png",
+  "./icons/icon-512.png",
+  "./icons/apple-touch-icon.png",
+  "./icons/favicon-32.png",
+];
+
+self.addEventListener("install", (evento) => {
+  evento.waitUntil(
+    caches.open(VERSAO)
+      .then((cache) => cache.addAll(ARQUIVOS))
+      .then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener("activate", (evento) => {
+  evento.waitUntil(
+    caches.keys()
+      .then((nomes) => Promise.all(
+        nomes.filter((nome) => nome.startsWith("ritmo-") && nome !== VERSAO).map((nome) => caches.delete(nome))
+      ))
+      .then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener("fetch", (evento) => {
+  const pedido = evento.request;
+  if (pedido.method !== "GET") return;
+  const url = new URL(pedido.url);
+  if (url.origin !== self.location.origin) return; // Supabase e fontes: direto pela rede
+
+  // Página: rede primeiro; sem internet, a última cópia
+  if (pedido.mode === "navigate") {
+    evento.respondWith(
+      fetch(pedido)
+        .then((resposta) => {
+          if (resposta.ok) {
+            const copia = resposta.clone();
+            caches.open(VERSAO).then((cache) => cache.put("./index.html", copia));
+          }
+          return resposta;
+        })
+        .catch(() => caches.match("./index.html"))
+    );
+    return;
+  }
+
+  // Arquivos do site: cópia guardada na hora e atualização em segundo plano
+  evento.respondWith(
+    caches.match(pedido).then((guardado) => {
+      const daRede = fetch(pedido)
+        .then((resposta) => {
+          if (resposta.ok) {
+            const copia = resposta.clone();
+            caches.open(VERSAO).then((cache) => cache.put(pedido, copia));
+          }
+          return resposta;
+        })
+        .catch(() => guardado);
+      return guardado || daRede;
+    })
+  );
+});
