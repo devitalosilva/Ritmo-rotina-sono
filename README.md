@@ -1,19 +1,25 @@
 # Ritmo · Controle de rotina e sono
 
-Site para organizar a rotina e cuidar do sono. Cada evento tem nome, horário, frequência, cor de marcação e esforço (leve, médio ou pesado). O site soma o esforço de cada dia e mostra o sono recomendado e a hora de deitar. Também tem diário de sono, check-in emocional, sequências com dias de descanso, tendências da semana e do mês, relatório para levar ao médico ou terapeuta (PDF e CSV), modo rotina mínima, lembretes, respiração guiada e um mixer de sons para relaxar.
+Site para organizar a rotina e cuidar do sono, que funciona também sem internet. Cada evento tem nome, horário, frequência (todo dia, dias da semana escolhidos, mensal com dias do mês ou semanas do mês, ou dia único), cor de marcação e esforço (leve, médio ou pesado). O site soma o esforço de cada dia e mostra o sono recomendado e a hora de deitar. Também tem diário de sono, check-in emocional, sequências com dias de descanso, tendências da semana e do mês, relatório para levar ao médico ou terapeuta (PDF e CSV), modo rotina mínima, lembretes, respiração guiada e um mixer de sons para relaxar.
 
 ## O que tem no projeto
 
 | Arquivo | Para que serve |
 | --- | --- |
-| `index.html` | O site inteiro: página inicial, login e cadastro, Minha rotina, Sono, Relaxar e Meu perfil. HTML, CSS e JavaScript no mesmo arquivo, com comentários em cada seção. |
+| `index.html` | Estrutura das páginas: página inicial, login e cadastro, Minha rotina, Sono, Relaxar e Meu perfil. |
+| `js/app.js` | Todo o funcionamento do site (configuração, banco, telas, offline, relatório), com comentários em cada seção. |
+| `js/tema.js` | Script curto que aplica o tema claro/escuro antes de desenhar a página, para não piscar. |
+| `css/app.css` | Todo o visual do site, com um guia rápido no topo. |
 | `vendor/supabase-js-2.117.3.js` | Biblioteca oficial do Supabase, hospedada junto com o site e verificada por integridade (SRI). |
-| `_headers` | Cabeçalhos de segurança que o Netlify aplica ao site (CSP, bloqueio de iframe, HTTPS) e regras de cache do app. |
+| `_headers` | Cabeçalhos de segurança que o Netlify aplica ao site (CSP sem scripts embutidos, bloqueio de iframe, HTTPS, recursos do navegador desligados) e regras de cache do app. Cada item está explicado no próprio arquivo. |
 | `manifest.webmanifest` | Manifesto do app: nome, ícones, cores, atalhos e capturas de tela usadas na instalação. |
 | `sw.js` | Service worker: deixa o site instalável e faz ele abrir sem internet. |
 | `icons/` | Ícones do app (192 e 512 px, versão para Android com margem segura, ícone do iPhone e favicon). |
 | `screenshots/` | Capturas do app mostradas na janela de instalação do Android. |
-| `supabase/migrations/` | Estrutura do banco no Supabase, em ordem: tabelas e regras por linha (RLS), coluna `tema`, reforço de segurança, diário de sono, ritual, lembretes, integrações, rotina mínima, check-in emocional e exclusão de conta. |
+| `scripts/verificar-segredos.sh` | Procura chaves secretas do Supabase no projeto (use antes de cada commit). |
+| `scripts/verificar-csp.sh` | Confere se o HTML continua compatível com a CSP (sem `<script>`, `<style>`, `onclick=` ou `javascript:` embutidos). |
+| `.github/workflows/verificar-segredos.yml` | Roda as duas verificações no GitHub a cada push e pull request. |
+| `supabase/migrations/` | Estrutura do banco no Supabase, em ordem: tabelas e regras por linha (RLS), coluna `tema`, reforço de segurança, diário de sono, ritual, lembretes, integrações, rotina mínima, check-in emocional, exclusão de conta e eventos mensais por dias. |
 
 ## Páginas
 
@@ -22,7 +28,7 @@ No celular, o menu vira uma barra de abas fixa no rodapé.
 | Endereço | Página |
 | --- | --- |
 | `#inicio` | Só para quem não entrou: com login, some do menu e leva a Minha rotina. Página inicial (landing page): hero com prévia do app, faixa animada, números sobre sono com fonte, problema e solução, recursos em abas, benefícios, como funciona, calculadora de sono, para quem é, comparação, privacidade, perguntas frequentes e chamada final. |
-| `#rotina` | Minha rotina: o dia em blocos de Manhã, Tarde e Noite, modo rotina mínima, cadastro de eventos e calendário. Exige login. |
+| `#rotina` | Minha rotina: o dia em blocos de Manhã, Tarde e Noite, modo rotina mínima, cadastro de eventos (com dias da semana: dias úteis, fins de semana ou qualquer combinação) e calendário. Exige login. |
 | `#sono` | Sono: hora de deitar recomendada (relógio de 24 h), ritual de desaceleração com checklist, registro rápido da noite (com humor ao acordar), check-in emocional, sequência com dias de descanso, tendências da semana e do mês e lembretes. Exige login. |
 | `#relaxar` | Relaxar: mixer com 3 pianos instrumentais, chuva, mar e ruído marrom (até 3 juntos), misturas prontas, tempo livre para tocar, relógio e respiração guiada (4-7-8, quadrada e 4-6). |
 | `#perfil` | Meu perfil: dados da conta, tema claro ou escuro, dicas automáticas, resumo, relatório de sono (PDF e CSV), integrações, sair e excluir a conta. Exige login. |
@@ -70,10 +76,10 @@ O Ritmo é um PWA: pode ser instalado na tela inicial e abre como app, em tela c
   - num aviso no topo do celular, a partir da 2ª visita ou com login (se fechado, some por 30 dias);
   - **logo depois do cadastro**, num diálogo "Conta criada! Agora, instale o Ritmo no celular". Se o cadastro pedir confirmação por e-mail, o convite aparece no primeiro acesso.
 - **Já instalado** (aberto pelo ícone): os convites somem.
-- **Sem internet**: o service worker guarda a página, a biblioteca e os ícones. O site abre, e a calculadora e a página Relaxar funcionam. Login e dados precisam de conexão. Dados da conta nunca ficam no cache.
+- **Sem internet**: o service worker guarda a página, a biblioteca e os ícones, e o modo offline (veja abaixo) guarda os dados da conta. O cache do service worker nunca guarda dados da conta.
 - **Ao publicar uma versão nova**: a página vem sempre da rede primeiro, então o app instalado recebe a atualização sozinho. Se mudar a lista de arquivos em `sw.js`, troque `VERSAO` (por exemplo, `ritmo-v2`).
 - A instalação só funciona em HTTPS (o Netlify já usa). Abrindo o `index.html` direto do computador ou na pré-visualização do Claude, o site mostra os passos, mas não instala.
-- Os textos dos passos ficam em `PASSOS_INSTALACAO`, no script.
+- Os textos dos passos ficam em `PASSOS_INSTALACAO`, em `js/app.js`.
 
 ## Rotina mínima (dias de sobrecarga)
 
@@ -81,17 +87,54 @@ O Ritmo é um PWA: pode ser instalado na tela inicial e abre como app, em tela c
 - Ligado, a agenda mostra só os eventos marcados como **essenciais** (caixa no cadastro do evento, coluna `eventos.essencial`) e avisa quantas atividades secundárias ficaram ocultas.
 - Aparece o básico do dia: copos de água (meta em `AGUA_META_COPOS`), horário mínimo para deitar (garante `SONO_MINIMO_MINUTOS`, 7h) e o ritual curto (só os passos com `essencial: true` em `RITUAL_PASSOS`).
 
+## Frequência dos eventos
+
+| Opção | Como funciona | No banco |
+| --- | --- | --- |
+| Todo dia | Todos os dias a partir de "Começa em". | `frequencia = 'diaria'` |
+| Dias da semana | Atalhos Dias úteis, Fins de semana e Todos os dias, ou qualquer combinação de Seg a Dom. | `semanal` + `dias_semana` (0 = domingo) |
+| Mensal: dias do mês | Atalhos Início do mês, Dias 1 e 15 e Último dia, ou qualquer combinação de 1 a 31 e "último dia". Num mês mais curto, o dia 31 (ou 30, 29) cai no último dia. | `mensal` + `dias_mes` (32 = último dia) |
+| Mensal: dias da semana do mês | Escolhe as semanas (1ª, 2ª, 3ª, 4ª ou última) e usa o mesmo seletor de dias da semana. Ex.: 1ª e 3ª segunda e quarta, ou última sexta. A 1ª semana são os dias 1 a 7; a última, os 7 últimos dias. | `mensal` + `semanas_mes` (5 = última) + `dias_semana` |
+| Dia único | Só na data escolhida. | `unica` |
+
+Eventos mensais antigos, sem `dias_mes` e sem `semanas_mes`, continuam no dia do mês da data de início. As regras ficam em `ocorreEm()`, e os textos, em `descreverDias()` e `descreverMensal()`.
+
+## Funciona sem internet (modo offline)
+
+Com a conta no Supabase, o site guarda uma cópia dos dados no aparelho e uma fila de alterações:
+
+- **Sem internet**, dá para abrir o site (o service worker guarda a página) e usar tudo com a última cópia: ver a rotina e o sono, cadastrar e excluir eventos, registrar noites, fazer check-ins, ligar a rotina mínima e mudar o perfil.
+- **O que você muda sem internet** aparece na hora e entra numa fila no aparelho. Eventos novos ganham um id provisório e a marca "Aguardando internet" na agenda.
+- **Quando a conexão volta**, a fila sobe sozinha, na ordem em que foi feita. Isso acontece no evento `online`, ao voltar para a aba e a cada 30 segundos enquanto houver algo pendente. Depois, o site busca a versão mais nova do servidor, inclusive o que mudou em outro aparelho, e avisa quantas alterações foram sincronizadas.
+- **Conflitos**: vale a última alteração enviada.
+- **Alteração recusada**: se o servidor recusar uma alteração por uma regra do banco, ela sai da fila e o site avisa.
+- **Barra no topo**: mostra quando está sem internet, sincronizando ou esperando um novo login para enviar.
+- **Precisam de internet**: entrar, criar conta e excluir a conta.
+- **Sair da conta com alterações pendentes**: o site avisa antes. Ao sair, a cópia e a fila daquela conta são apagadas do aparelho.
+- **Onde fica no código**: em `js/app.js`, em `DB_OFFLINE`, `sincronizar()` e `atualizarBarraConexao()`. No aparelho, as chaves são `ritmo_copia_<id>`, `ritmo_fila_<id>` e `ritmo_offline_ultimo`.
+
 ## Check-in emocional
 
 - **À noite** (página Sono): estresse, ansiedade e fadiga mental de 1 a 5, salvos em `checkins_diarios` na data da noite. Antes das 5h ainda conta como a noite anterior.
 - **De manhã**: humor ao acordar de 1 a 5, no registro rápido (`registros_sono.humor`).
-- A noite D é comparada com a manhã D + 1. "Tensão" é a média dos três valores da noite. O site mostra as últimas noites lado a lado e leituras simples: médias, humor depois de 7h ou mais de sono contra menos de 7h, e o que aconteceu depois das noites de tensão alta.
+- A noite D é comparada com a manhã D + 1. "Tensão" é a média dos três valores da noite.
+- **Histórico das noites** (tabela, 7 dias, 30 dias ou tudo): uma linha por noite com check-in. Cada linha mostra estresse, ansiedade, fadiga e tensão, mais o sono, o humor e a energia vindos do registro rápido da manhã seguinte, e o **resultado** da noite.
+  - **Resultado** = humor ao acordar − calma ao deitar (6 − tensão). **Melhorou** com +1 ou mais, **Piorou** com −1 ou menos e **Estável** no meio.
+  - Acima da tabela: noites com check-in, quantas acordou melhor, resultado médio e resultado depois de 7h ou mais de sono contra menos de 7h.
+  - Sem a manhã registrada, a linha mostra "Registrar a manhã" (ou "Marcar o humor"), que abre o registro rápido na data certa.
+- **No registro rápido**, aparece o check-in da noite anterior e, ao marcar o humor, o resultado da noite antes de salvar. O site mostra as últimas noites lado a lado e leituras simples: médias, humor depois de 7h ou mais de sono contra menos de 7h, e o que aconteceu depois das noites de tensão alta.
 
 ## Relatório de sono (Meu perfil)
 
 - Período: últimos 30 dias, 90 dias ou todo o histórico.
-- **PDF**: "Ver relatório" abre a prévia; "Imprimir ou salvar PDF" usa a impressão do navegador, e o CSS de impressão mostra só o relatório.
-- **CSV**: separado por ponto e vírgula, com vírgula decimal e BOM (abre direto no Excel em português). Células que começam com `=`, `+`, `-` ou `@` ganham um apóstrofo, contra fórmulas maliciosas. Também dá para copiar o CSV.
+- **Três blocos de resumo**:
+  - **Sono**: noites, sono estimado, **sono recomendado pela rotina** e diferença média (quantas noites atingiram), horários médios, latência, despertares, eficiência e energia.
+  - **Equilíbrio emocional**: noites com check-in, tensão, humor, quantas vezes acordou melhor ou pior, resultado médio da noite e o resultado com 7h ou mais de sono contra menos de 7h.
+  - **Rotina e hábitos**: ritual concluído, esforço médio da rotina, dias em rotina mínima, dias de descanso, água e sequência do diário.
+- **Tabela de noites**: deitou → acordou, adormecer, despertares, sono, recomendado (com a diferença), eficiência, energia, humor, estresse · ansiedade · fadiga, resultado da noite, ritual e o dia anterior (rotina mínima, descanso, copos de água).
+- **PDF**: "Ver relatório" abre a prévia; "Imprimir ou salvar PDF" usa a impressão do navegador, com a página na horizontal (A4 deitado) e só o relatório.
+- **CSV** (25 colunas, com as mesmas informações): separado por ponto e vírgula, com vírgula decimal e BOM (abre direto no Excel em português). Textos que começam com `=`, `+`, `-` ou `@` ganham um apóstrofo, contra fórmulas maliciosas; números negativos passam normalmente. Também dá para copiar o CSV.
+- O código fica em `linhasRelatorio()`, `resumoRelatorio()`, `htmlRelatorio()` e `gerarCsv()`.
 - Na pré-visualização do Claude, impressão e download comum são bloqueados; no site publicado funcionam normalmente.
 
 ## Sua conta
@@ -122,21 +165,35 @@ Situação de cada provedor:
 
 O site é um arquivo HTML estático, sem etapa de build.
 
-- **Para testar no computador**, abra `index.html` no navegador ou rode um servidor simples na pasta, por exemplo `npx serve .`.
-- **Para publicar**, envie a pasta inteira (com `vendor` e `_headers`) para uma hospedagem estática. No Netlify Drop, basta arrastar a pasta.
+- **Para testar no computador**, abra `index.html` no navegador ou rode um servidor simples na pasta, por exemplo `npx serve .`. Os cabeçalhos de `_headers` (CSP) só valem no Netlify.
+- **Para publicar**, envie a pasta inteira (com `js`, `css`, `vendor` e `_headers`) para uma hospedagem estática. No Netlify Drop, basta arrastar a pasta. Em outra hospedagem (Vercel, Cloudflare Pages, GitHub Pages), copie os cabeçalhos de `_headers` para a configuração dela, senão a proteção da CSP fica de fora.
+- **Ao editar**, não escreva scripts, estilos nem `onclick=` dentro do `index.html`: coloque em `js/app.js` e `css/app.css`. Rode `bash scripts/verificar-csp.sh` para conferir.
 
 O modo demonstração, que guarda os dados só no navegador, funciona apenas com o arquivo aberto no computador, em `localhost` ou em pré-visualização. No site publicado, se o Supabase não responder, o login fica indisponível e nada é salvo no navegador.
 
 ## Segurança
 
+### Checklist
+
+| Conduta | Como está no Ritmo |
+| --- | --- |
+| RLS em todas as tabelas | Ligado em `perfis`, `eventos`, `registros_sono`, `checkins_diarios` e `integracoes`. As políticas usam `auth.uid()`: cada usuário só lê, cria, altera e exclui o que é dele. |
+| Autenticação nativa (Supabase Auth) | Login, senhas (com hash), tokens e renovação ficam no Supabase Auth. Nenhuma tabela tem coluna de senha. O modo demonstração (só no computador, `localhost` ou na prévia) guarda um hash PBKDF2 no navegador e nunca roda no site publicado. |
+| `service_role` fora do site e do GitHub | O site usa só a chave pública (`sb_publishable_`). `chavePublica()` se recusa a iniciar com uma chave `sb_secret_` ou um JWT `service_role`. `scripts/verificar-segredos.sh` procura chaves secretas antes do commit, e `.github/workflows/verificar-segredos.yml` faz o mesmo no GitHub. O `.gitignore` bloqueia `.env`, `*.pem`, `*.key` e pastas do Supabase CLI. |
+| Redirecionamentos e limite de tentativas | Precisa do painel (veja abaixo). No site, `DB_CONFIG.urlDoSite` fixa o endereço dos links de e-mail. A espera depois de 5 senhas erradas (que dobra a cada bloqueio) vale para o login e para a confirmação de senha ao excluir a conta, e continua valendo depois de recarregar a página. |
+| Telas privadas só com sessão confirmada | Minha rotina, Sono e Meu perfil começam ocultas no HTML (`hidden`) e mostram "Carregando…" até a sessão ser conferida. A sessão é confirmada no servidor com `auth.getUser()`, porque `getSession()` só lê o navegador. Token vencido, revogado ou de conta apagada faz o site sair e voltar como visitante. Sem internet, o site só abre a cópia local se a sessão do Supabase daquela mesma conta ainda estiver guardada no aparelho. |
+| Validações no banco | Todas as colunas têm tipo, `NOT NULL` onde precisa, faixas (esforço 1–3, notas 1–5, latência 0–240…), tamanhos (nome até 60/80) e formatos (cor `#RRGGBB`, celular com 10 ou 11 dígitos, sem `<` `>` nos nomes). Também há regras de coerência entre colunas (veja `supabase/migrations/20261118080000_reforcar_validacoes_banco.sql`) e um teto de linhas por conta. |
+| Sem XSS na tela | Texto vindo do banco entra na tela por `textContent` ou passa por `escaparHtml()` (escapa `& < > " '`). Cores, horários, datas e notas são validados antes de entrar no HTML (`normalizarEvento`, `normalizarRegistro`, `normalizarCheckins`). Não há `onclick` nem outros atributos de evento no HTML. Usuário, cópia offline e fila também passam por validação (`normalizarUsuario`, `lerCopia`, `lerFila`). Por cima disso, a CSP da hospedagem não deixa rodar nenhum script embutido. |
+
 **No banco (Supabase)**
-- Cada usuário só lê e altera os próprios dados (RLS em `perfis` e `eventos`).
+- Cada usuário só lê e altera os próprios dados (RLS em todas as tabelas).
 - Visitantes sem login não têm nenhuma permissão nas tabelas.
 - Só as colunas editáveis podem ser alteradas: `id`, `usuario_id` e `criado_em` ficam travados.
 - Nomes com `<`, `>` ou caracteres de controle são recusados, e as datas precisam ser válidas.
-- Cada conta pode ter no máximo 300 eventos.
+- Cada conta pode ter no máximo 300 eventos, 1.500 noites no diário de sono e 2.000 dias de check-in (contra quem tenta encher o banco).
 - Funções do banco rodam com `search_path` fixo e não podem ser chamadas pela API, exceto `excluir_minha_conta()`, que só usuários logados chamam e que apaga apenas a própria conta. O aviso 0029 do Security Advisor sobre ela é esperado.
-- Excluir a conta exige a senha de novo.
+- Excluir a conta exige a senha digitada nos últimos 10 minutos, conferida **no servidor** (claim `amr` do token). Um token roubado, mesmo válido, não apaga a conta.
+- Tabelas, sequências e funções novas nascem **sem** acesso para visitantes e usuários (negar por padrão): cada objeto novo precisa de `GRANT` e RLS explícitos.
 
 **No site**
 - Todo texto do usuário é escapado antes de aparecer na tela, contra injeção de código (XSS).
@@ -146,24 +203,61 @@ O modo demonstração, que guarda os dados só no navegador, funciona apenas com
   - Descontos: senha ou palavra comum, nome ou e-mail na senha, sequências (1234, abcd) e repetições (aaa).
   - Regras em `avaliarSenha()`; listas em `SENHAS_COMUNS` e `PALAVRAS_COMUNS`; cores nos tokens `--senha-fraca`, `--senha-moderada` e `--senha-forte`.
   - O campo de confirmação avisa se as duas senhas coincidem.
-- Depois de 5 tentativas de login erradas, o site pede uma espera, que dobra a cada novo bloqueio.
+- Depois de 5 senhas erradas (no login ou ao excluir a conta), o site pede uma espera, que dobra a cada novo bloqueio e não zera ao recarregar.
+- Ao abrir, a sessão é confirmada no servidor (`auth.getUser()`), e só então as telas privadas aparecem.
+- Login com fluxo **PKCE**: tokens colados no endereço (`#access_token=...`) são recusados e apagados. Ninguém consegue mandar um link que coloque você dentro da conta dele.
+- A cópia offline e a fila de alterações são conferidas antes de usar: dados corrompidos ou adulterados no navegador viram vazio em vez de quebrar a tela, e a fila nunca troca o `id` ou o e-mail da conta.
+- O site se recusa a funcionar com uma chave secreta do Supabase (`chavePublica()`).
 - Ao sair, ou quando a sessão termina em outra aba, os dados da conta saem da tela e dos formulários.
 - A biblioteca do Supabase fica no próprio site, com verificação de integridade (SRI).
 
 **Na hospedagem (`_headers`)**
-- Política de segurança de conteúdo (CSP): scripts só do próprio site e conexões só com o Supabase do projeto.
+- Política de segurança de conteúdo (CSP) que começa negando tudo (`default-src 'none'`) e libera só o que o site usa:
+  - Scripts só de arquivos do próprio site (`js/` e `vendor/`). Nenhum script escrito dentro do HTML roda, nem `onclick=`, nem `javascript:`, nem `eval`. Mesmo que um texto malicioso chegasse à página, ele não executaria.
+  - Folhas de estilo só do site e do Google Fonts; `<style>` injetado é bloqueado. Estilo em atributo (`style="--cor:..."`) continua liberado, porque o site usa para pintar eventos e barras.
+  - Conexões só com o próprio site e o Supabase do projeto: os dados não podem ser enviados para outro endereço.
 - O site não pode ser aberto dentro de outra página (proteção contra clickjacking).
-- HTTPS obrigatório e recursos como câmera e microfone desligados.
+- HTTPS obrigatório (HSTS) e recursos do navegador desligados (câmera, microfone, localização, pagamentos, sensores, USB, rastreamento de anúncios). Ficam ligados só áudio, tela cheia e copiar o CSV.
+- Isolamento de outros sites: `Cross-Origin-Opener-Policy`, `Cross-Origin-Resource-Policy` e `Origin-Agent-Cluster`.
+- Página, script e estilo sempre conferidos de novo (`Cache-Control: no-cache`), para as correções chegarem na hora. O app instalado busca página, script e estilo juntos na rede, para nunca misturar versões.
+
+### Teste de invasão (18/11/2026)
+
+Ataques feitos contra o banco real (em transações desfeitas no fim, sem deixar rastro) e contra o site (com um Supabase simulado e dados maliciosos):
+
+| Ataque | Resultado |
+| --- | --- |
+| Visitante sem login lendo ou gravando qualquer tabela ou função | Bloqueado |
+| Usuário A lendo, alterando ou apagando dados do usuário B | Bloqueado (0 linhas) |
+| Trocar `usuario_id`, `id`, `origem` ou forjar uma integração | Bloqueado (42501) |
+| Nome com `<script>`, CSS malicioso na cor, HTML no ritual | Bloqueado no banco (23514) |
+| **Apagar a conta com um token roubado antigo** | **Falha encontrada e corrigida**: agora exige senha digitada há menos de 10 minutos |
+| **Link com o token do atacante (`#access_token=`) logando a vítima na conta dele** | **Falha encontrada e corrigida**: fluxo PKCE e limpeza do endereço |
+| **Encher o banco: ~20 mil linhas numa única requisição** | **Falha encontrada e corrigida**: teto por conta |
+| **Cópia offline corrompida no navegador quebrando a tela** | **Falha encontrada e corrigida**: cópia e fila validadas |
+| Tabela nova criada no futuro ficando aberta por padrão | **Risco corrigido**: negar por padrão |
+| XSS em todos os campos (nome, celular, sexo, tema, cor, horários, datas, ids, ritual, notas) nas 4 páginas, calendário e relatório | Nada executou |
+| Endereço (`#hash`) com HTML, `javascript:` e `__proto__` | Nada executou |
+| Marcar "sessão ativa" no navegador sem estar logado | Telas privadas continuam ocultas |
+| Fórmulas no CSV (`=`, `+`, `@`) | Neutralizadas |
+| Poluição de protótipo pela fila offline | Bloqueada |
+| Vazamento de dados para outros domínios | Nenhum pedido saiu |
+| Script injetado na página (`<script>`, `onerror=`, `onload=`, `javascript:`), `<style>` injetado, script de outro site, envio para outro domínio, iframe | Bloqueados pela CSP (hospedagem atualizada) |
+
+Riscos que continuam (dependem do painel do Supabase):
+- O cadastro diz quando um e-mail já existe (risco baixo, típico com a confirmação de e-mail desligada).
+- Os itens do painel abaixo (CAPTCHA, senhas vazadas, senha mínima, redirecionamentos e limites).
 
 **Configurações que só podem ser feitas no painel do Supabase**
-1. Authentication > Attack Protection: ative o CAPTCHA (Cloudflare Turnstile ou hCaptcha) para barrar cadastros automáticos, já que a confirmação de e-mail está desligada.
-2. Authentication > Providers > Email: defina a senha mínima em 8 caracteres e exija letras e números.
-3. Authentication > Attack Protection: ative a proteção contra senhas vazadas, se o seu plano tiver essa opção.
-4. Authentication > URL Configuration: coloque o endereço do Netlify em *Site URL* e deixe em *Redirect URLs* só os endereços do site.
+1. **Authentication > URL Configuration**: em *Site URL*, coloque o endereço oficial do site (o do Netlify). Em *Redirect URLs*, deixe **só** esse endereço (apague `localhost` e outros que não usa). Coloque o mesmo endereço em `DB_CONFIG.urlDoSite`, no script.
+2. **Authentication > Rate Limits**: mantenha os limites ligados (tentativas de login/token, cadastros e e-mails por hora). Não aumente sem motivo.
+3. **Authentication > Attack Protection**: ative o CAPTCHA (Cloudflare Turnstile ou hCaptcha) para barrar robôs no cadastro e no login, já que a confirmação de e-mail está desligada. Ative também a proteção contra senhas vazadas, se o seu plano tiver essa opção.
+4. **Authentication > Providers > Email**: senha mínima de 8 caracteres, com letras e números.
+5. **Project Settings > API Keys**: nunca copie a chave `service_role` / `secret` para o site. Se ela já foi parar em algum arquivo ou commit, gere uma nova no painel.
 
 ## Banco de dados (Supabase)
 
-O site já aponta para o projeto **Ritmo** no Supabase. Endereço e chave ficam em `DB_CONFIG`, no script de `index.html`.
+O site já aponta para o projeto **Ritmo** no Supabase. Endereço e chave ficam em `DB_CONFIG`, no topo de `js/app.js`.
 
 - A chave em `DB_CONFIG` é a chave **pública** (publishable). Ela pode ficar no código porque as regras de segurança do banco só deixam cada usuário ver e alterar os próprios dados. Nunca coloque a chave secreta (`service_role` ou `sb_secret_…`) no site.
 - E-mail e senha ficam no Supabase Auth. Nome, celular, sexo e hora de acordar ficam na tabela `perfis`.
@@ -171,17 +265,30 @@ O site já aponta para o projeto **Ritmo** no Supabase. Endereço e chave ficam 
 
 ### Configurações recomendadas no painel do Supabase
 
-1. **Authentication > Sign In / Providers > Email**: desligue *Confirm email* para o usuário entrar logo após criar a conta, ou configure um SMTP próprio para enviar os e-mails de confirmação.
+1. **Authentication > Sign In / Providers > Email**: desligue *Confirm email* para o usuário entrar logo após criar a conta, ou configure um SMTP próprio para enviar os e-mails de confirmação. Se ligar, o link de confirmação (fluxo PKCE) já entra sozinho no mesmo navegador em que a conta foi criada; em outro aparelho, o e-mail fica confirmado e basta entrar com a senha.
 2. **Authentication > URL Configuration**: coloque o endereço onde o site está publicado em *Site URL*.
+
+## Tom de voz dos textos
+
+Os textos do Ritmo conversam com a pessoa, em português do Brasil. Ao escrever algo novo:
+
+- Fale com "você", de forma próxima e acolhedora, como alguém que entende de sono e quer ajudar. Frases curtas e palavras do dia a dia ("deitar", "cansar", "contar como dormiu"), sem termos técnicos.
+- Sem culpa: dia puxado, noite esquecida ou meta perdida "acontecem com todo mundo". O texto mostra o próximo passo.
+- Erros dizem o que aconteceu e o que fazer ("Não deu para salvar agora. Tente de novo em instantes."). Faltou um campo? "Faltou o horário do evento."
+- Conquistas são comemoradas sem exagero ("Meta de água cumprida! Seu corpo agradece.").
+- **Ligações entre assuntos**: cada seção da página inicial termina com uma frase-ponte que leva à próxima (`.ponte`), na ordem números → problema → recursos → benefícios → como começar → calculadora → para quem é → comparação → instalar → privacidade → perguntas. Cada página do app termina sugerindo o próximo passo do dia (`.ponte-pagina`): Minha rotina → Sono → Relaxar → Sono (de manhã); Meu perfil → Minha rotina. Ao criar uma seção nova, ajuste a ponte da seção anterior para apontar para ela.
+- Títulos e rótulos em PT-BR usam maiúscula só na primeira letra ("Mente tranquila", não "Mente Tranquila").
 
 ## Onde editar
 
-O topo do `<style>` em `index.html` tem um guia rápido. Os pontos principais são:
+O topo de `css/app.css` tem um guia rápido. Os pontos principais são:
 
 - `CONFIG` e `NAV_LINKS`: nome do site e itens do menu.
 - Tokens em `:root`: cores (base `#9FB5C4`) e fontes (Comfortaa nos títulos, Plus Jakarta Sans nos textos).
 - `SONO_CONFIG` e `calcularSono()`: regras do cálculo de sono.
-- `FREQUENCIAS`, `ocorreEm()` e `renderizarCalendario()`: frequência dos eventos e calendário.
+- `FREQUENCIAS`, `ocorreEm()` e `renderizarCalendario()`: frequência dos eventos e calendário. `ATALHOS_DIAS` e `descreverDias()`: atalhos (dias úteis, fins de semana, todos os dias) e textos dos dias da semana.
+- `renderizarHistoricoEmocional()` e `resultadoNoite()`: tabela do check-in emocional.
+- `DB_OFFLINE`, `sincronizar()` e `atualizarBarraConexao()`: modo offline e sincronização.
 - `DB_SUPABASE` e `DB_LOCAL`: acesso ao banco online e ao modo demonstração.
 - `FRASES_MARQUEE`: frases da faixa animada.
 - `iniciarLanding()`: abas de recursos, animação ao rolar, textos das chamadas e perguntas frequentes para buscadores.

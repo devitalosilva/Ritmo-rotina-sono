@@ -1,21 +1,56 @@
 # Cabeçalhos de segurança do site no Netlify.
 # O Netlify lê este arquivo automaticamente (também no Netlify Drop).
 #
-# Content-Security-Policy: só permite scripts e estilos do próprio site, fontes do
-#   Google Fonts e conexões com o Supabase do projeto Ritmo. Se trocar o projeto do
-#   Supabase, troque o endereço em connect-src.
-# frame-ancestors / X-Frame-Options: impede que o site seja aberto dentro de outra página.
-# Os demais cabeçalhos desligam recursos que o site não usa e reforçam o HTTPS.
-# sw.js e manifest.webmanifest: sempre conferidos de novo, para o app instalado receber as atualizações.
+# Content-Security-Policy (CSP), item por item:
+#   default-src 'none'      tudo começa proibido; abaixo, só o que o site usa.
+#   script-src 'self'       só scripts que são arquivos do próprio site (js/ e vendor/).
+#                           Nenhum script escrito dentro do HTML roda, nem onclick=, nem
+#                           javascript:. Mesmo que um texto malicioso entrasse na página,
+#                           ele não executaria. Por isso o script fica em js/app.js.
+#   style-src-elem          folhas de estilo só do site (css/) e do Google Fonts.
+#   style-src-attr          estilo em atributos (style="--cor:...") continua liberado:
+#                           o site usa para pintar eventos e barras.
+#   style-src               regra antiga, para navegadores que não conhecem as duas acima.
+#   font-src / img-src      fontes do Google Fonts; imagens do site e embutidas (data:).
+#   connect-src             conexões só com o próprio site e o Supabase do projeto Ritmo.
+#                           Se trocar o projeto do Supabase, troque o endereço aqui.
+#   manifest-src/worker-src manifesto do app e service worker, só do site.
+#   object-src / frame-src  nada de plugins nem páginas embutidas.
+#   base-uri 'none'         ninguém consegue trocar o endereço base dos links.
+#   form-action 'self'      formulários só enviam para o próprio site.
+#   frame-ancestors 'none'  o site não pode ser aberto dentro de outra página (clickjacking).
+#
+# Permissions-Policy: desliga câmera, microfone, localização, pagamentos, sensores, USB,
+#   rastreamento de anúncios etc. Ficam ligados só para o próprio site: tocar áudio (página Relaxar),
+#   tela cheia e copiar o CSV.
+# Cross-Origin-*: isola a página de janelas e sites de outros domínios.
+# Strict-Transport-Security: só HTTPS por 1 ano.
+# Cache-Control: página, script e estilo são sempre conferidos de novo, para todo mundo
+#   receber as correções na hora. A biblioteca em vendor/ tem a versão no nome e fica em cache.
 
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://rrsgyrymsmkihrpsmpwj.supabase.co wss://rrsgyrymsmkihrpsmpwj.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-elem 'self' https://fonts.googleapis.com; style-src-attr 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://rrsgyrymsmkihrpsmpwj.supabase.co wss://rrsgyrymsmkihrpsmpwj.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
-  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()
+  Permissions-Policy: accelerometer=(), autoplay=(self), browsing-topics=(), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), hid=(), idle-detection=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), serial=(), usb=(), xr-spatial-tracking=(), clipboard-read=(), clipboard-write=(self)
   Strict-Transport-Security: max-age=31536000
   Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Resource-Policy: same-origin
+  Origin-Agent-Cluster: ?1
+  X-Permitted-Cross-Domain-Policies: none
+
+/
+  Cache-Control: no-cache
+
+/index.html
+  Cache-Control: no-cache
+
+/js/*
+  Cache-Control: no-cache
+
+/css/*
+  Cache-Control: no-cache
 
 /vendor/*
   Cache-Control: public, max-age=31536000, immutable
