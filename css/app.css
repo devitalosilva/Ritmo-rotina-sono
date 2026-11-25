@@ -13,7 +13,7 @@
    9. Tema claro / escuro: aplicarTema() e a página Meu perfil (coluna "tema" no banco).
    10. Página Relaxar: SONS (sons gerados pelo navegador) e atualizarRelogio().
    11. Segurança: bloco SEGURANÇA em js/app.js, regras do banco em supabase/migrations
-       e cabeçalhos da hospedagem no arquivo _headers (Netlify).
+       e política de segurança (CSP) no <head> do index.html (GitHub Pages).
    12. Página inicial (landing page): HTML em PÁGINA: INÍCIO, estilos na seção 22
        deste CSS e comportamento em iniciarLanding() (abas, animação ao rolar, chamadas).
    13. App instalável (PWA): manifest.webmanifest, sw.js e icons/; convites de instalação
@@ -3476,4 +3476,21 @@ html[data-movido] #perfil-conta { display: none; }
   .acordar-dias { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .acordar-dia { padding: 10px; }
   .acordar-dia input { padding: 10px 6px; font-size: 1rem; }
+}
+
+/* =========================================================
+   34. PROTEÇÃO CONTRA IFRAME DE OUTRO SITE (clickjacking)
+   No endereço oficial, js/tema.js marca html[data-emoldurado] quando o Ritmo é aberto
+   dentro de um iframe. Nada da página aparece nem pode ser clicado; fica só o aviso.
+   ========================================================= */
+html[data-emoldurado] body > * { display: none !important; }
+html[data-emoldurado] body::after {
+  content: "Por segurança, o Ritmo só abre no próprio endereço: devitalosilva.github.io/Ritmo-rotina-sono";
+  display: block;
+  max-width: 34rem;
+  margin: 15vh auto 0;
+  padding: 0 24px;
+  color: var(--text);
+  font: 600 1rem/1.6 var(--font-body);
+  text-align: center;
 }

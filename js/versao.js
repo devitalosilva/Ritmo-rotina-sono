@@ -7,4 +7,4 @@
      todo mundo receber os arquivos novos e apaga o cache antigo.
    Formato: MAIOR.MENOR.CORREÇÃO (ex.: 4.0.1 para uma correção, 4.1.0 para novidade).
    ========================================================= */
-self.RITMO_VERSAO = Object.freeze({ numero: "4.2.0", data: "2026-11-24" });
+self.RITMO_VERSAO = Object.freeze({ numero: "4.2.1", data: "2026-11-24" });

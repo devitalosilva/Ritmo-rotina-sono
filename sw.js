@@ -9,6 +9,10 @@
      cópia guardada e se atualizam em segundo plano.
    - Pedidos para outros endereços (Supabase, Google Fonts) não passam por aqui:
      dados da conta nunca ficam guardados no cache.
+   - O GitHub Pages manda guardar cada arquivo por 10 minutos. Para todo mundo receber
+     a versão nova assim que ela é publicada, página, script e estilo sempre conferem
+     com o servidor (cache: "no-cache"; sem mudança, a resposta é curta) e a instalação
+     busca tudo de novo (cache: "reload").
 
    O nome do cache vem do número em js/versao.js (o mesmo que aparece em
    Configurações). A cada atualização, troque o número lá: o cache antigo é
@@ -35,7 +39,7 @@ const ARQUIVOS = [
 self.addEventListener("install", (evento) => {
   evento.waitUntil(
     caches.open(VERSAO)
-      .then((cache) => cache.addAll(ARQUIVOS))
+      .then((cache) => cache.addAll(ARQUIVOS.map((url) => new Request(url, { cache: "reload" }))))
       .then(() => self.skipWaiting())
   );
 });
@@ -59,7 +63,7 @@ self.addEventListener("fetch", (evento) => {
   // Página: rede primeiro; sem internet, a última cópia
   if (pedido.mode === "navigate") {
     evento.respondWith(
-      fetch(pedido)
+      fetch(new Request(pedido.url, { cache: "no-cache", credentials: "same-origin" }))
         .then((resposta) => {
           if (resposta.ok) {
             const copia = resposta.clone();
@@ -75,7 +79,7 @@ self.addEventListener("fetch", (evento) => {
   // Script, estilo e manifesto: rede primeiro (mesma versão da página); sem internet, a cópia
   if (!/\/(vendor|icons|screenshots)\//.test(url.pathname)) {
     evento.respondWith(
-      fetch(pedido)
+      fetch(pedido, { cache: "no-cache" })
         .then((resposta) => {
           if (resposta.ok) {
             const copia = resposta.clone();

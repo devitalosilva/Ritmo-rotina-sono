@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =========================================================
-# Confere se o index.html continua compatível com a CSP de _headers.
+# Confere se o index.html continua compatível com a CSP que fica no <head> dele.
 # A CSP só deixa rodar scripts que são ARQUIVOS do site (js/, vendor/). Se alguém
 # colar um <script> com código dentro do HTML, um onclick="..." ou um link
 # javascript:, isso não roda no site publicado. Este teste avisa antes.
@@ -30,12 +30,21 @@ linhas=$(grep -nE '<style(\s[^>]*)?>' index.html)
 linhas=$(grep -nE '(^|[^.a-zA-Z_])eval\(|new Function\(|setTimeout\(\s*["'"'"'`]|setInterval\(\s*["'"'"'`]' js/*.js)
 [ -n "$linhas" ] && problemas="${problemas}eval / new Function / setTimeout com texto (não rodam com a CSP):"$'\n'"$linhas"$'\n'
 
-# 5. A CSP precisa continuar sem 'unsafe-inline' e sem 'unsafe-eval' nos scripts
-csp=$(grep -m1 'Content-Security-Policy:' _headers)
-script_src=$(printf '%s' "$csp" | grep -oE "script-src [^;]*")
-case "$script_src" in
-  *unsafe-inline*|*unsafe-eval*) problemas="${problemas}_headers: script-src voltou a liberar 'unsafe-inline' ou 'unsafe-eval'."$'\n' ;;
-esac
+# 5. A CSP (meta no <head>) precisa existir, vir logo depois do charset e continuar
+#    sem 'unsafe-inline' e sem 'unsafe-eval' nos scripts
+csp=$(grep -m1 -oE '<meta http-equiv="Content-Security-Policy" content="[^"]*"' index.html)
+if [ -z "$csp" ]; then
+  problemas="${problemas}index.html: sumiu a <meta http-equiv=\"Content-Security-Policy\"> do <head>."$'\n'
+else
+  script_src=$(printf '%s' "$csp" | grep -oE "script-src [^;\"]*")
+  case "$script_src" in
+    *unsafe-inline*|*unsafe-eval*) problemas="${problemas}index.html: script-src da CSP voltou a liberar 'unsafe-inline' ou 'unsafe-eval'."$'\n' ;;
+  esac
+  printf '%s' "$csp" | grep -q "default-src 'none'" || problemas="${problemas}index.html: a CSP precisa começar fechada (default-src 'none')."$'\n'
+  # Antes da CSP, só o charset (comentários não contam): o que vier antes não fica protegido
+  antes=$(perl -0pe 's/<!--.*?-->//gs' index.html | awk '/<head>/{h=1;next} /Content-Security-Policy" content=/{exit} h' | grep -E '<[a-zA-Z]' | grep -v 'charset=')
+  [ -n "$antes" ] && problemas="${problemas}index.html: há elementos antes da CSP no <head> (ela deve vir logo depois do charset):"$'\n'"$antes"$'\n'
+fi
 
 if [ -n "$problemas" ]; then
   printf 'ATENÇÃO: o site não vai funcionar como esperado com a CSP:\n%s' "$problemas"

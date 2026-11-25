@@ -13,14 +13,17 @@ Site para organizar a rotina e cuidar do sono, que funciona também sem internet
 | `js/idiomas.js` | Traduções do app para inglês e espanhol (Configurações > Idioma). |
 | `css/app.css` | Todo o visual do site, com um guia rápido no topo. |
 | `vendor/supabase-js-2.117.3.js` | Biblioteca oficial do Supabase, hospedada junto com o site e verificada por integridade (SRI). |
-| `_headers` | Cabeçalhos de segurança que o Netlify aplica ao site (CSP sem scripts embutidos, bloqueio de iframe, HTTPS, recursos do navegador desligados) e regras de cache do app. Cada item está explicado no próprio arquivo. |
 | `manifest.webmanifest` | Manifesto do app: nome, ícones, cores, atalhos e capturas de tela usadas na instalação. |
 | `sw.js` | Service worker: deixa o site instalável e faz ele abrir sem internet. |
 | `icons/` | Ícones do app (192 e 512 px, versão para Android com margem segura, ícone do iPhone e favicon). |
 | `screenshots/` | Capturas do app mostradas na janela de instalação do Android. |
 | `scripts/verificar-segredos.sh` | Procura chaves secretas do Supabase no projeto (use antes de cada commit). |
 | `scripts/verificar-csp.sh` | Confere se o HTML continua compatível com a CSP (sem `<script>`, `<style>`, `onclick=` ou `javascript:` embutidos). |
+| `scripts/preparar-publicacao.sh` | Monta a pasta `_site/` com só os arquivos do site, que é o que vai para o GitHub Pages. |
 | `.github/workflows/verificar-segredos.yml` | Roda as duas verificações no GitHub a cada push e pull request. |
+| `.github/workflows/publicar.yml` | Publica no GitHub Pages, mas só depois das verificações; sem elas passarem, nada vai ao ar. |
+| `.github/dependabot.yml` | Avisa (com pull request) quando as ações do GitHub ganham versão nova. |
+| `.nojekyll` | Diz ao GitHub Pages para entregar os arquivos como estão, sem processar com o Jekyll. |
 | `supabase/migrations/` | Estrutura do banco no Supabase, em ordem: tabelas e regras por linha (RLS), coluna `tema`, reforço de segurança, diário de sono, ritual, lembretes, integrações, rotina mínima, check-in emocional, exclusão de conta, eventos mensais por dias, mensagens de feedback, fim do evento e horário de acordar por dia da semana. |
 
 ## Páginas
@@ -83,7 +86,7 @@ O Ritmo é um PWA: pode ser instalado na tela inicial e abre como app, em tela c
 - **Já instalado** (aberto pelo ícone): os convites somem.
 - **Sem internet**: o service worker guarda a página, a biblioteca e os ícones, e o modo offline (veja abaixo) guarda os dados da conta. O cache do service worker nunca guarda dados da conta.
 - **Ao publicar uma versão nova**: troque o número em `js/versao.js` (por exemplo, de `4.0.0` para `4.0.1`) e a data. O mesmo número dá nome ao cache do app instalado (`sw.js` lê esse arquivo), então quem já instalou recebe os arquivos novos e o cache antigo é apagado. Ele também aparece em Configurações > Versão do site, e o app avisa uma vez quando a versão muda.
-- A instalação só funciona em HTTPS (o Netlify já usa). Abrindo o `index.html` direto do computador ou na pré-visualização do Claude, o site mostra os passos, mas não instala.
+- A instalação só funciona em HTTPS (o GitHub Pages já usa). Abrindo o `index.html` direto do computador ou na pré-visualização do Claude, o site mostra os passos, mas não instala.
 - Os textos dos passos ficam em `PASSOS_INSTALACAO`, em `js/app.js`.
 
 ## Visual de app no celular (com login)
@@ -194,7 +197,7 @@ Com a conta no Supabase, o site guarda uma cópia dos dados no aparelho e uma fi
 
 ### Para o "Esqueci minha senha" funcionar no site publicado (painel do Supabase)
 
-1. **Authentication > URL Configuration**: em *Site URL*, coloque `https://ritmo-rotina-sono-v4.netlify.app`. Em *Redirect URLs*, adicione `https://ritmo-rotina-sono-v4.netlify.app/` (o mesmo de `DB_CONFIG.urlDoSite`, em `js/app.js`).
+1. **Authentication > URL Configuration**: em *Site URL*, coloque `https://devitalosilva.github.io/Ritmo-rotina-sono/`. Em *Redirect URLs*, adicione `https://devitalosilva.github.io/Ritmo-rotina-sono/` (o mesmo de `DB_CONFIG.urlDoSite`, em `js/app.js`).
 2. **Authentication > Emails > Templates > Reset Password**: deixe o modelo padrão do Supabase (se tiver colado outro, clique em restaurar o padrão).
 3. **Authentication > Emails > SMTP Settings**: ligue *Enable custom SMTP* e preencha com os dados do serviço de e-mail (Resend, Brevo, SendGrid, Amazon SES ou outro). O serviço padrão do Supabase só entrega para os e-mails da equipe do projeto e no máximo 2 por hora, então os usuários não receberiam o link.
    - **Host** é o servidor de e-mail do serviço, **nunca o endereço do site**. Exemplos: Brevo `smtp-relay.brevo.com` (porta 587), Resend `smtp.resend.com` (porta 465).
@@ -226,8 +229,8 @@ Situação de cada provedor:
 
 O site é um arquivo HTML estático, sem etapa de build.
 
-- **Para testar no computador**, abra `index.html` no navegador ou rode um servidor simples na pasta, por exemplo `npx serve .`. Os cabeçalhos de `_headers` (CSP) só valem no Netlify.
-- **Para publicar**, envie a pasta inteira (com `js`, `css`, `vendor` e `_headers`) para uma hospedagem estática. No Netlify Drop, basta arrastar a pasta. Em outra hospedagem (Vercel, Cloudflare Pages, GitHub Pages), copie os cabeçalhos de `_headers` para a configuração dela, senão a proteção da CSP fica de fora.
+- **Para testar no computador**, abra `index.html` no navegador ou rode um servidor simples na pasta, por exemplo `npx serve .`. A política de segurança (CSP) está no próprio `index.html`, então vale em qualquer lugar.
+- **Para publicar** (GitHub Pages, em `https://devitalosilva.github.io/Ritmo-rotina-sono/`): envie as mudanças para o ramo principal do repositório. O workflow **Publicar no GitHub Pages** confere tudo e publica sozinho. Na primeira vez, em **Settings > Pages > Build and deployment**, escolha *Source: GitHub Actions* (veja "Proteger o repositório" em Segurança).
 - **Ao editar**, não escreva scripts, estilos nem `onclick=` dentro do `index.html`: coloque em `js/app.js` e `css/app.css`. Rode `bash scripts/verificar-csp.sh` para conferir.
 
 O modo demonstração, que guarda os dados só no navegador, funciona apenas com o arquivo aberto no computador, em `localhost` ou em pré-visualização. No site publicado, se o Supabase não responder, o login fica indisponível e nada é salvo no navegador.
@@ -244,7 +247,7 @@ O modo demonstração, que guarda os dados só no navegador, funciona apenas com
 | Redirecionamentos e limite de tentativas | Precisa do painel (veja abaixo). No site, `DB_CONFIG.urlDoSite` fixa o endereço dos links de e-mail. A espera depois de 5 senhas erradas (que dobra a cada bloqueio) vale para o login e para a confirmação de senha ao excluir a conta, e continua valendo depois de recarregar a página. |
 | Telas privadas só com sessão confirmada | Minha rotina, Sono e Meu perfil começam ocultas no HTML (`hidden`) e mostram "Carregando…" até a sessão ser conferida. A sessão é confirmada no servidor com `auth.getUser()`, porque `getSession()` só lê o navegador. Token vencido, revogado ou de conta apagada faz o site sair e voltar como visitante. Sem internet, o site só abre a cópia local se a sessão do Supabase daquela mesma conta ainda estiver guardada no aparelho. |
 | Validações no banco | Todas as colunas têm tipo, `NOT NULL` onde precisa, faixas (esforço 1–3, notas 1–5, latência 0–240…), tamanhos (nome até 60/80) e formatos (cor `#RRGGBB`, celular com 10 ou 11 dígitos, sem `<` `>` nos nomes). Também há regras de coerência entre colunas (veja `supabase/migrations/20261118080000_reforcar_validacoes_banco.sql`) e um teto de linhas por conta. |
-| Sem XSS na tela | Texto vindo do banco entra na tela por `textContent` ou passa por `escaparHtml()` (escapa `& < > " '`). Cores, horários, datas e notas são validados antes de entrar no HTML (`normalizarEvento`, `normalizarRegistro`, `normalizarCheckins`). Não há `onclick` nem outros atributos de evento no HTML. Usuário, cópia offline e fila também passam por validação (`normalizarUsuario`, `lerCopia`, `lerFila`). Por cima disso, a CSP da hospedagem não deixa rodar nenhum script embutido. |
+| Sem XSS na tela | Texto vindo do banco entra na tela por `textContent` ou passa por `escaparHtml()` (escapa `& < > " '`). Cores, horários, datas e notas são validados antes de entrar no HTML (`normalizarEvento`, `normalizarRegistro`, `normalizarCheckins`). Não há `onclick` nem outros atributos de evento no HTML. Usuário, cópia offline e fila também passam por validação (`normalizarUsuario`, `lerCopia`, `lerFila`). Por cima disso, a CSP do `index.html` não deixa rodar nenhum script embutido. |
 
 **No banco (Supabase)**
 - Cada usuário só lê e altera os próprios dados (RLS em todas as tabelas).
@@ -272,15 +275,31 @@ O modo demonstração, que guarda os dados só no navegador, funciona apenas com
 - Ao sair, ou quando a sessão termina em outra aba, os dados da conta saem da tela e dos formulários.
 - A biblioteca do Supabase fica no próprio site, com verificação de integridade (SRI).
 
-**Na hospedagem (`_headers`)**
-- Política de segurança de conteúdo (CSP) que começa negando tudo (`default-src 'none'`) e libera só o que o site usa:
+**Na hospedagem (GitHub Pages)**
+
+O GitHub Pages não deixa configurar cabeçalhos de segurança, então a proteção fica no próprio site:
+- **Política de segurança de conteúdo (CSP)** numa `<meta>` logo no começo do `<head>` do `index.html`. Ela começa negando tudo (`default-src 'none'`) e libera só o que o site usa:
   - Scripts só de arquivos do próprio site (`js/` e `vendor/`). Nenhum script escrito dentro do HTML roda, nem `onclick=`, nem `javascript:`, nem `eval`. Mesmo que um texto malicioso chegasse à página, ele não executaria.
   - Folhas de estilo só do site e do Google Fonts; `<style>` injetado é bloqueado. Estilo em atributo (`style="--cor:..."`) continua liberado, porque o site usa para pintar eventos e barras.
   - Conexões só com o próprio site e o Supabase do projeto: os dados não podem ser enviados para outro endereço.
-- O site não pode ser aberto dentro de outra página (proteção contra clickjacking).
-- HTTPS obrigatório (HSTS) e recursos do navegador desligados (câmera, microfone, localização, pagamentos, sensores, USB, rastreamento de anúncios). Ficam ligados só áudio, tela cheia e copiar o CSV.
-- Isolamento de outros sites: `Cross-Origin-Opener-Policy`, `Cross-Origin-Resource-Policy` e `Origin-Agent-Cluster`.
-- Página, script e estilo sempre conferidos de novo (`Cache-Control: no-cache`), para as correções chegarem na hora. O app instalado busca página, script e estilo juntos na rede, para nunca misturar versões.
+  - `scripts/verificar-csp.sh` confere que a CSP continua lá, fechada e antes de qualquer outro elemento.
+- **Clickjacking**: no endereço oficial, `js/tema.js` (o primeiro script) percebe quando o Ritmo é aberto dentro de um iframe de outro site e esconde a página inteira, deixando só um aviso. Ninguém consegue esconder o Ritmo atrás de outro site para fazer você clicar sem ver. No endereço oficial, o modo demonstração também nunca liga, nem dentro de iframe.
+- **HTTPS**: o GitHub Pages serve `github.io` só por HTTPS, e o domínio já vem na lista de HTTPS obrigatório dos navegadores. Deixe marcado *Enforce HTTPS* em Settings > Pages.
+- **Só os arquivos do site são publicados** (`scripts/preparar-publicacao.sh`): README, migrações do Supabase, scripts e a pasta `.github` não ficam acessíveis pelo endereço do site.
+- **Publicação conferida**: o workflow só publica se não houver chave secreta no código e se a CSP estiver intacta. Se algo falhar, o site no ar continua como estava.
+- **Versões sempre atuais**: o GitHub Pages guarda cada arquivo por 10 minutos. O app instalado confere página, script e estilo com o servidor a cada abertura (resposta curta quando nada mudou), então ninguém fica com uma versão antiga nem mistura arquivos de versões diferentes.
+- O que não dá para ter no GitHub Pages: os cabeçalhos `Permissions-Policy` e `Cross-Origin-*`. O site não usa câmera, microfone, localização nem outros recursos sensíveis, e a CSP já barra conexões com outros endereços.
+
+### Proteger o repositório (contra mudanças indevidas)
+
+Quem consegue alterar o repositório consegue alterar o site. Estas configurações ficam no GitHub e só o dono da conta pode fazer:
+1. **Verificação em duas etapas** na conta do GitHub (Settings > Password and authentication). É a proteção mais importante.
+2. **Settings > Pages > Build and deployment > Source: GitHub Actions**. Assim o site só muda pelo workflow **Publicar no GitHub Pages**, que confere tudo antes.
+3. **Settings > Environments > github-pages**: em *Deployment branches*, deixe só o ramo principal.
+4. **Settings > Rules > Rulesets** (ou *Branches*), no ramo principal: bloqueie *force push* e exclusão, e exija que a verificação **Verificar segurança** passe antes de juntar um pull request.
+5. **Settings > Actions > General**: em *Workflow permissions*, deixe *Read repository contents permission* (os workflows pedem só o que precisam).
+6. Se alguém mais colaborar, dê acesso de escrita só a quem precisa (Settings > Collaborators).
+7. Ative os alertas do **Dependabot** (Settings > Code security) para as ações do GitHub ficarem atualizadas.
 
 ### Teste de invasão (18/11/2026)
 
@@ -303,14 +322,15 @@ Ataques feitos contra o banco real (em transações desfeitas no fim, sem deixar
 | Fórmulas no CSV (`=`, `+`, `@`) | Neutralizadas |
 | Poluição de protótipo pela fila offline | Bloqueada |
 | Vazamento de dados para outros domínios | Nenhum pedido saiu |
-| Script injetado na página (`<script>`, `onerror=`, `onload=`, `javascript:`), `<style>` injetado, script de outro site, envio para outro domínio, iframe | Bloqueados pela CSP (hospedagem atualizada) |
+| Script injetado na página (`<script>`, `onerror=`, `onload=`, `javascript:`), `<style>` injetado, script de outro site, envio para outro domínio, iframe | Bloqueados pela CSP do `index.html` |
+| Abrir o Ritmo dentro de um iframe de outro site (clickjacking) | Página escondida (`js/tema.js`) |
 
 Riscos que continuam (dependem do painel do Supabase):
 - O cadastro diz quando um e-mail já existe (risco baixo, típico com a confirmação de e-mail desligada).
 - Os itens do painel abaixo (CAPTCHA, senhas vazadas, senha mínima, redirecionamentos e limites).
 
 **Configurações que só podem ser feitas no painel do Supabase**
-1. **Authentication > URL Configuration**: em *Site URL*, coloque o endereço oficial do site (o do Netlify). Em *Redirect URLs*, deixe **só** esse endereço (apague `localhost` e outros que não usa). Coloque o mesmo endereço em `DB_CONFIG.urlDoSite`, no script.
+1. **Authentication > URL Configuration**: em *Site URL*, coloque o endereço oficial do site (`https://devitalosilva.github.io/Ritmo-rotina-sono/`). Em *Redirect URLs*, deixe **só** esse endereço (apague `localhost`, o antigo do Netlify e outros que não usa). Ele é o mesmo de `DB_CONFIG.urlDoSite`, no script.
 2. **Authentication > Rate Limits**: mantenha os limites ligados (tentativas de login/token, cadastros e e-mails por hora). Não aumente sem motivo.
 3. **Authentication > Attack Protection**: ative o CAPTCHA (Cloudflare Turnstile ou hCaptcha) para barrar robôs no cadastro e no login, já que a confirmação de e-mail está desligada. Ative também a proteção contra senhas vazadas, se o seu plano tiver essa opção.
 4. **Authentication > Providers > Email**: senha mínima de 8 caracteres, com letras e números.

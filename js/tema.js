@@ -1,10 +1,23 @@
 /* =========================================================
    RITMO · tema e sessão antes de desenhar a página
    Roda no <head>, antes do CSS, para a página não piscar no tema errado.
-   Fica num arquivo separado porque a política de segurança (CSP, em _headers)
-   não deixa rodar nenhum script escrito dentro do HTML.
+   Fica num arquivo separado porque a política de segurança (CSP, no <head> do
+   index.html) não deixa rodar nenhum script escrito dentro do HTML.
    ========================================================= */
 (function () {
+  // Proteção contra clickjacking: no endereço oficial, o Ritmo não aparece dentro de
+  // um iframe de outro site (alguém poderia esconder a página e fazer a pessoa clicar
+  // sem ver). O CSS esconde tudo enquanto houver data-emoldurado (css/app.css, seção 34).
+  // Se trocar o endereço do site, troque aqui e em DB_CONFIG.urlDoSite (js/app.js).
+  var HOST_OFICIAL = "devitalosilva.github.io";
+  try {
+    if (location.hostname === HOST_OFICIAL && window.top !== window.self) {
+      document.documentElement.setAttribute("data-emoldurado", "");
+    }
+  } catch (e) {
+    document.documentElement.setAttribute("data-emoldurado", "");
+  }
+
   try {
     var tema = localStorage.getItem("ritmo_tema");
     if (tema === "claro" || tema === "escuro") {

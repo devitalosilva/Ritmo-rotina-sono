@@ -1,6 +1,6 @@
 /* =========================================================
    RITMO · script do site (antes ficava dentro do index.html)
-   Fica num arquivo separado porque a política de segurança (CSP, em _headers)
+   Fica num arquivo separado porque a política de segurança (CSP, no <head> do index.html)
    só deixa rodar scripts que são arquivos do próprio site. Assim, mesmo que algum
    texto malicioso entrasse na página, ele não conseguiria executar código.
    ========================================================= */
@@ -160,10 +160,10 @@ const DB_CONFIG = {
   // Só a chave PÚBLICA (sb_publishable_... ou a "anon"). Ela obedece ao RLS.
   // Nunca a service_role / sb_secret_: o site se recusa a usar uma chave secreta (chavePublica()).
   chave: "sb_publishable_QBmuGhyIt0YbEqosbB0yDw_k-cWbgR9",
-  // Endereço oficial do site no Netlify. Os links dos e-mails (confirmação e "Esqueci minha senha")
+  // Endereço oficial do site (GitHub Pages). Os links dos e-mails (confirmação e "Esqueci minha senha")
   // sempre voltam para ele. Cadastre o mesmo em Supabase > Authentication > URL Configuration.
-  // Se trocar o endereço do site, troque aqui também.
-  urlDoSite: "https://ritmo-rotina-sono-v4.netlify.app/",
+  // Se trocar o endereço do site, troque aqui também (com a barra no fim e as maiúsculas iguais).
+  urlDoSite: "https://devitalosilva.github.io/Ritmo-rotina-sono/",
 };
 
 /* Recusa chaves administrativas: sb_secret_... ou JWT com role "service_role" */
@@ -1170,9 +1170,11 @@ function iniciarModoOffline() {
 
 /* O modo demonstração só vale fora do site publicado: arquivo aberto no computador,
    localhost ou pré-visualização dentro de outra página (como no Claude).
-   No site publicado, se o Supabase não responder, o login fica indisponível em vez de
-   guardar contas e senhas no navegador. */
+   No site publicado (endereço de DB_CONFIG.urlDoSite), nunca, nem dentro de um iframe:
+   se o Supabase não responder, o login fica indisponível em vez de guardar contas e
+   senhas no navegador. */
 function podeUsarDemonstracao() {
+  try { if (location.hostname === new URL(DB_CONFIG.urlDoSite).hostname) return false; } catch (e) { /* segue */ }
   if (location.protocol === "file:" || /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)) return true;
   try { return window.self !== window.top; } catch (e) { return true; }
 }
@@ -2121,7 +2123,9 @@ function iniciarRotina() {
    - No banco: cada usuário só acessa os próprios dados (RLS); id, usuario_id e
      criado_em não podem ser alterados; visitantes sem login não acessam nada;
      limite de 300 eventos por conta.
-   - Na hospedagem: cabeçalhos de segurança no arquivo _headers (Netlify).
+   - Na hospedagem (GitHub Pages): a CSP fica no <head> do index.html; js/tema.js não deixa
+     o site aparecer dentro de iframe de outro site; o GitHub Actions só publica depois de
+     conferir chaves e CSP, e só os arquivos do site (scripts/preparar-publicacao.sh).
    ========================================================= */
 const AUTH_SETTINGS = {
   senhaMinima: 8,

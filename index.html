@@ -2,6 +2,18 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
+<!-- POLÍTICA DE SEGURANÇA (CSP). O GitHub Pages não deixa configurar cabeçalhos, então ela fica aqui,
+     logo depois do charset, para valer para tudo o que vem depois. Item por item:
+       script-src 'self'   só scripts que são arquivos do site (js/ e vendor/): nada escrito dentro
+                           do HTML, nada de onclick= nem javascript:. Texto malicioso não executa.
+       style-src-elem      estilos só de css/ e do Google Fonts; style-src-attr libera style="--cor:..."
+       connect-src         conexões só com o próprio site e o Supabase do Ritmo (troque se mudar o projeto)
+       img-src / font-src  imagens do site e embutidas (data:); fontes do Google Fonts
+       object-src, frame-src 'none'   nada de plugins nem páginas embutidas
+       base-uri 'none', form-action 'self'   ninguém troca o endereço base nem desvia formulários
+     Abrir o Ritmo dentro de outro site (iframe) é barrado em js/tema.js, porque "frame-ancestors"
+     não funciona nesta tag. Confira com scripts/verificar-csp.sh. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-elem 'self' https://fonts.googleapis.com; style-src-attr 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://rrsgyrymsmkihrpsmpwj.supabase.co wss://rrsgyrymsmkihrpsmpwj.supabase.co; manifest-src 'self'; worker-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'self'; upgrade-insecure-requests" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="claude:viewport-fit-sides" content="cover" />
 <!-- Nome que aparece na aba do navegador. Troque junto com CONFIG.nome no script. -->
